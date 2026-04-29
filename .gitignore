@@ -1,0 +1,29 @@
+# Secrets
+.env
+*.env
+!env.example
+
+# State
+ct_trend_hunter_state.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# OS / Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Temp
+.temp/
+temp/
+*.log
+
+# Internal tooling
+.neteragen/
