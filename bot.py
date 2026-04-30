@@ -265,7 +265,9 @@ class CTTrendHunterBot:
                 f"ignored: {ignored_label}"
             )
 
-        details = [f"  reason: {reasons}"] if reasons else []
+        details = self._format_tweet_links(report)
+        if reasons:
+            details.append(f"  reason: {reasons}")
 
         return "\n".join([header, *details])
 
@@ -292,6 +294,18 @@ class CTTrendHunterBot:
             f"{reason} ({count})" if count > 1 else reason
             for reason, count in reasons.items()
         )
+
+    def _format_tweet_links(self, report: AccountScanReport, limit: int = 3) -> List[str]:
+        urls: List[str] = []
+        for result in report.results:
+            url = result.root_tweet.url if report.mode == "maker" else result.tweet.url
+            if url and url not in urls:
+                urls.append(url)
+
+        lines = [f"  tweet: {url}" for url in urls[:limit]]
+        if len(urls) > limit:
+            lines.append(f"  more tweet links: {len(urls) - limit}")
+        return lines
 
     def _split_message(self, text: str, limit: int = 3900) -> List[str]:
         chunks: List[str] = []

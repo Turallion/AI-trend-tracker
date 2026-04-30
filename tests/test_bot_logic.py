@@ -126,7 +126,28 @@ class BotLogicTests(unittest.TestCase):
         text = self.bot._format_report(reports, now - timedelta(minutes=30), now, 0)
 
         self.assertIn("@maker", text)
+        self.assertIn("tweet: https://x.com/maker/status/1", text)
         self.assertNotIn("@quiet", text)
+
+    def test_catcher_report_uses_quote_tweet_link(self) -> None:
+        quote = make_tweet("q1", author="catcher", is_quote=True, quoted_tweet_id="r1")
+        root = make_tweet("r1", author="root", quote_count=90)
+        result = EvaluationResult(
+            source_account="catcher",
+            mode="catcher",
+            tweet=quote,
+            root_tweet=root,
+            seen_state="new",
+            source_seen_state="new",
+            ignored=True,
+            reason="not enough quotes (<100)",
+        )
+        report = AccountScanReport(account="catcher", mode="catcher", new_items_count=1, ignored_count=1, results=[result])
+
+        text = self.bot._format_account_report(report)
+
+        self.assertIn("tweet: https://x.com/catcher/status/q1", text)
+        self.assertNotIn("tweet: https://x.com/root/status/r1", text)
 
     def test_embedded_quoted_tweet_is_parsed_and_used_as_root(self) -> None:
         client = XClient("test", "https://example.com")
