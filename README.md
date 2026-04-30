@@ -10,7 +10,7 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 - Uses advanced search for the last `CHECK_INTERVAL_MINUTES` window.
 - Filters out replies and retweets.
 - Ignores self-quotes and self quote chains.
-- Ignores originals older than 6h.
+- Ignores originals older than `ORIGINAL_MAX_AGE_HOURS`.
 - Deduplicates alerts by original tweet ID.
 - Re-evaluates when seen tweet quote_count increases.
 - Sends `ALERT` messages and one compact English report per run.
@@ -47,6 +47,7 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 - `TELEGRAM_CHAT_ID`
 - `CHECK_INTERVAL_MINUTES` (default `30`)
 - `QUOTE_THRESHOLD` (default `100`)
+- `ORIGINAL_MAX_AGE_HOURS` (default `12`)
 - `DB_PATH` (default `ct_trend_hunter_state.json`)
 - `ACCOUNT_CONFIG_PATH` (default `project_accounts.json`)
 

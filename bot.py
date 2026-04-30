@@ -132,9 +132,9 @@ class CTTrendHunterBot:
         ignored = False
         reason = ""
 
-        if (now - root_tweet.created_at) > timedelta(hours=6):
+        if (now - root_tweet.created_at) > timedelta(hours=self.settings.original_max_age_hours):
             ignored = True
-            reason = "original tweet older than 6h"
+            reason = f"original tweet older than {self.settings.original_max_age_hours}h"
 
         if mode == "catcher":
             if tweet.author_username.lower() == root_tweet.author_username.lower():

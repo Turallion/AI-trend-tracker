@@ -21,6 +21,7 @@ def make_settings(db_path: str) -> Settings:
         telegram_chat_id="test",
         check_interval_minutes=30,
         quote_threshold=100,
+        original_max_age_hours=12,
         db_path=db_path,
         account_config_path="project_accounts.json",
         makers=[],
@@ -98,12 +99,12 @@ class BotLogicTests(unittest.TestCase):
 
     def test_catcher_old_root_is_ignored(self) -> None:
         quote = make_tweet("q1", author="catcher", is_quote=True, quoted_tweet_id="r1")
-        root = make_tweet("r1", author="root", quote_count=700, created_at=datetime.now(timezone.utc) - timedelta(hours=7))
+        root = make_tweet("r1", author="root", quote_count=700, created_at=datetime.now(timezone.utc) - timedelta(hours=13))
 
         result = self.bot._evaluate("catcher", quote, root, "catcher", self.state)
 
         self.assertTrue(result.ignored)
-        self.assertEqual(result.reason, "original tweet older than 6h")
+        self.assertEqual(result.reason, "original tweet older than 12h")
 
     def test_report_only_shows_active_accounts(self) -> None:
         now = datetime(2026, 4, 28, 10, 30, tzinfo=timezone.utc)

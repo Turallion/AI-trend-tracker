@@ -38,6 +38,7 @@ class Settings:
     telegram_chat_id: str
     check_interval_minutes: int
     quote_threshold: int
+    original_max_age_hours: int
     db_path: str
     account_config_path: str
     makers: List[str]
@@ -82,6 +83,7 @@ def load_settings() -> Settings:
         telegram_chat_id=_env("TELEGRAM_CHAT_ID"),
         check_interval_minutes=int(_env("CHECK_INTERVAL_MINUTES", "30")),
         quote_threshold=int(_env("QUOTE_THRESHOLD", "100")),
+        original_max_age_hours=int(_env("ORIGINAL_MAX_AGE_HOURS", "12")),
         db_path=_env("DB_PATH", "ct_trend_hunter_state.json"),
         account_config_path=account_config_path,
         makers=makers,
