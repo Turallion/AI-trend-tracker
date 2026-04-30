@@ -20,6 +20,7 @@ def make_settings(db_path: str) -> Settings:
         telegram_bot_token="test",
         telegram_chat_id="test",
         check_interval_minutes=30,
+        quote_threshold=100,
         db_path=db_path,
         account_config_path="project_accounts.json",
         makers=[],
@@ -67,20 +68,20 @@ class BotLogicTests(unittest.TestCase):
             os.unlink(self.tmp.name)
 
     def test_maker_original_under_threshold_is_ignored(self) -> None:
-        tweet = make_tweet("1", quote_count=499)
+        tweet = make_tweet("1", quote_count=99)
 
         result = self.bot._evaluate("maker", tweet, tweet, "maker", self.state)
 
         self.assertTrue(result.ignored)
-        self.assertEqual(result.reason, "not enough quotes (<500)")
+        self.assertEqual(result.reason, "not enough quotes (<100)")
 
     def test_maker_original_over_threshold_is_alert_eligible(self) -> None:
-        tweet = make_tweet("1", quote_count=500)
+        tweet = make_tweet("1", quote_count=100)
 
         result = self.bot._evaluate("maker", tweet, tweet, "maker", self.state)
 
         self.assertFalse(result.ignored)
-        self.assertEqual(result.reason, "eligible for alert (>=500 quotes)")
+        self.assertEqual(result.reason, "eligible for alert (>=100 quotes)")
 
     def test_maker_quote_report_is_not_included(self) -> None:
         report = AccountScanReport(account="maker", mode="maker", skipped_quote_count=1, ignored_count=1)
@@ -115,7 +116,7 @@ class BotLogicTests(unittest.TestCase):
             seen_state="new",
             source_seen_state="new",
             ignored=True,
-            reason="not enough quotes (<500)",
+            reason="not enough quotes (<100)",
         )
         reports = [
             AccountScanReport(account="maker", mode="maker", new_items_count=1, ignored_count=1, results=[active_result]),

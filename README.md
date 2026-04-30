@@ -2,7 +2,7 @@
 
 Telegram-connected X monitor.
 
-Only signal used: **original tweet quote_count >= 500**.
+Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 
 ## What it does
 - Monitors makers' original tweets.
@@ -46,6 +46,7 @@ Only signal used: **original tweet quote_count >= 500**.
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - `CHECK_INTERVAL_MINUTES` (default `30`)
+- `QUOTE_THRESHOLD` (default `100`)
 - `DB_PATH` (default `ct_trend_hunter_state.json`)
 - `ACCOUNT_CONFIG_PATH` (default `project_accounts.json`)
 

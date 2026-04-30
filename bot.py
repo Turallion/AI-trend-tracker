@@ -52,7 +52,7 @@ class CTTrendHunterBot:
                     report.new_items_count += 1 if result.source_seen_state == "new" else 0
                     report.ignored_count += 1 if result.ignored else 0
                     all_results.append(result)
-                    if not result.ignored and result.root_tweet.quote_count >= 500:
+                    if not result.ignored and result.root_tweet.quote_count >= self.settings.quote_threshold:
                         tracked_hit_accounts.setdefault(result.root_tweet.id, set()).add(maker)
             except Exception as e:
                 report.error = str(e)
@@ -82,7 +82,7 @@ class CTTrendHunterBot:
                     report.new_items_count += 1 if result.source_seen_state == "new" else 0
                     report.ignored_count += 1 if result.ignored else 0
                     all_results.append(result)
-                    if not result.ignored and result.root_tweet.quote_count >= 500:
+                    if not result.ignored and result.root_tweet.quote_count >= self.settings.quote_threshold:
                         tracked_hit_accounts.setdefault(result.root_tweet.id, set()).add(catcher)
             except Exception as e:
                 report.error = str(e)
@@ -90,7 +90,7 @@ class CTTrendHunterBot:
         trend_ids: Set[str] = set()
         alert_results: List[EvaluationResult] = []
         for result in all_results:
-            if not result.ignored and result.root_tweet.quote_count >= 500:
+            if not result.ignored and result.root_tweet.quote_count >= self.settings.quote_threshold:
                 trend_ids.add(result.root_tweet.id)
                 result.tracked_accounts_on_trend = sorted(list(tracked_hit_accounts.get(result.root_tweet.id, set())))
                 alert_results.append(result)
@@ -150,13 +150,13 @@ class CTTrendHunterBot:
                 "quote_count": root_tweet.quote_count,
                 "updated_at": now.isoformat(),
             }
-            if not ignored and root_tweet.quote_count < 500:
+            if not ignored and root_tweet.quote_count < self.settings.quote_threshold:
                 ignored = True
-                reason = "not enough quotes (<500)"
+                reason = f"not enough quotes (<{self.settings.quote_threshold})"
             elif not ignored and seen and root_tweet.quote_count > prev_count:
                 reason = "already seen, quote count increased -> re-evaluated"
-            elif not ignored and root_tweet.quote_count >= 500:
-                reason = "eligible for alert (>=500 quotes)"
+            elif not ignored and root_tweet.quote_count >= self.settings.quote_threshold:
+                reason = f"eligible for alert (>={self.settings.quote_threshold} quotes)"
 
         source_seen = state["source_tweets"].get(tweet.id)
         source_seen_state = "new" if not source_seen else "already_seen"
