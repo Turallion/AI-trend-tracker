@@ -98,10 +98,13 @@ class XClient:
         return tweets
 
     def _build_search_query(self, username: str, since: datetime, until: datetime, *, quote_only: bool) -> str:
+        # twitterapi.io requires epoch since_time/until_time. The string
+        # form `since:YYYY-MM-DD_HH:MM:SS_UTC` is documented as unsupported and
+        # silently returns far fewer or zero results.
         parts = [
             f"from:{username.lstrip('@')}",
-            f"since:{self._format_search_time(since)}",
-            f"until:{self._format_search_time(until)}",
+            f"since_time:{self._format_search_time(since)}",
+            f"until_time:{self._format_search_time(until)}",
             "-filter:replies",
             "-filter:nativeretweets",
         ]
@@ -112,7 +115,8 @@ class XClient:
         return " ".join(parts)
 
     def _format_search_time(self, dt: datetime) -> str:
-        return dt.astimezone(timezone.utc).strftime("%Y-%m-%d_%H:%M:%S_UTC")
+        # twitterapi.io expects unix epoch seconds for since_time/until_time.
+        return str(int(dt.astimezone(timezone.utc).timestamp()))
 
     def _parse_tweets(self, raw_tweets: Any) -> List[Tweet]:
         if isinstance(raw_tweets, dict):
