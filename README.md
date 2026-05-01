@@ -7,14 +7,14 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 ## What it does
 - Monitors makers' original tweets.
 - Monitors catchers' quote tweets, resolves root original tweet.
-- Uses advanced search for the last `CHECK_INTERVAL_MINUTES` window.
+- Uses advanced search for the last `SEARCH_WINDOW_MINUTES` window.
 - Filters out replies and retweets.
 - Ignores self-quotes and self quote chains.
 - Ignores originals older than `ORIGINAL_MAX_AGE_HOURS`.
 - Deduplicates alerts by original tweet ID.
 - Re-evaluates when seen tweet quote_count increases.
 - Sends `ALERT` messages and one compact English report per run.
-- Runs every 30 minutes.
+- Runs every `CHECK_INTERVAL_MINUTES` minutes.
 
 ## Setup
 1. Install deps:
@@ -45,7 +45,8 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 - `X_API_REQUESTS_PER_SECOND` (default `20`)
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
-- `CHECK_INTERVAL_MINUTES` (default `30`)
+- `CHECK_INTERVAL_MINUTES` (default `60`)
+- `SEARCH_WINDOW_MINUTES` (default `120`)
 - `QUOTE_THRESHOLD` (default `100`)
 - `ORIGINAL_MAX_AGE_HOURS` (default `12`)
 - `DB_PATH` (default `ct_trend_hunter_state.json`)

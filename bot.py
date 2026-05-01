@@ -22,7 +22,7 @@ class CTTrendHunterBot:
 
     def run_once(self, *, send_telegram: bool = True, save_state: bool = True) -> str:
         run_started_at = datetime.now(timezone.utc)
-        window_start = run_started_at - timedelta(minutes=self.settings.check_interval_minutes)
+        window_start = run_started_at - timedelta(minutes=self.settings.search_window_minutes)
         state = self.store.load()
         state.setdefault("tweets", {})
         state.setdefault("source_tweets", {})
