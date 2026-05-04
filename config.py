@@ -40,6 +40,8 @@ class Settings:
     search_window_minutes: int
     quote_threshold: int
     original_max_age_hours: int
+    timezone_name: str
+    daily_digest_hour: int
     db_path: str
     account_config_path: str
     makers: List[str]
@@ -86,6 +88,8 @@ def load_settings() -> Settings:
         search_window_minutes=int(_env("SEARCH_WINDOW_MINUTES", "120")),
         quote_threshold=int(_env("QUOTE_THRESHOLD", "100")),
         original_max_age_hours=int(_env("ORIGINAL_MAX_AGE_HOURS", "12")),
+        timezone_name=_env("TIMEZONE", "Europe/Moscow"),
+        daily_digest_hour=int(_env("DAILY_DIGEST_HOUR", "10")),
         db_path=_env("DB_PATH", "ct_trend_hunter_state.json"),
         account_config_path=account_config_path,
         makers=makers,

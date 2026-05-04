@@ -14,6 +14,8 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 - Deduplicates alerts by original tweet ID.
 - Re-evaluates when seen tweet quote_count increases.
 - Sends `ALERT` messages and one compact English report per run.
+- Skips compact run reports when no maker original tweets or catcher quote tweets were found.
+- Sends a daily alert digest at `DAILY_DIGEST_HOUR`.
 - Runs every `CHECK_INTERVAL_MINUTES` minutes.
 
 ## Setup
@@ -49,6 +51,8 @@ Only signal used: **original tweet quote_count >= `QUOTE_THRESHOLD`**.
 - `SEARCH_WINDOW_MINUTES` (default `120`)
 - `QUOTE_THRESHOLD` (default `100`)
 - `ORIGINAL_MAX_AGE_HOURS` (default `12`)
+- `TIMEZONE` (default `Europe/Moscow`)
+- `DAILY_DIGEST_HOUR` (default `10`)
 - `DB_PATH` (default `ct_trend_hunter_state.json`)
 - `ACCOUNT_CONFIG_PATH` (default `project_accounts.json`)
 

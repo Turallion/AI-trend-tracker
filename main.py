@@ -66,8 +66,11 @@ def run(*, debug: bool = False, dry_run: bool = False, run_now: bool = False) ->
 def _do_run(bot: CTTrendHunterBot, *, debug: bool, dry_run: bool) -> None:
     try:
         report = bot.run_once(send_telegram=not dry_run, save_state=not dry_run)
+        digest = bot.send_daily_digest_if_due(send_telegram=not dry_run, save_state=not dry_run)
         if debug:
             print(report)
+            if digest:
+                print(digest)
     except Exception as e:
         try:
             if dry_run:

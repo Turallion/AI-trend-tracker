@@ -27,6 +27,8 @@ class CTTrendHunterBot:
         state.setdefault("tweets", {})
         state.setdefault("source_tweets", {})
         state.setdefault("alerts_sent", {})
+        state.setdefault("alerts_history", [])
+        state.setdefault("daily_digest_sent", {})
 
         tracked_hit_accounts: Dict[str, Set[str]] = {}
         all_results: List[EvaluationResult] = []
@@ -105,9 +107,41 @@ class CTTrendHunterBot:
                 self._send_alert_if_needed(result, state)
             if save_state:
                 self.store.save(state)
-            self._send_report(report_text)
+            if self._should_send_report(account_reports, alert_results):
+                self._send_report(report_text)
 
         return report_text
+
+    def send_daily_digest_if_due(
+        self,
+        *,
+        now: Optional[datetime] = None,
+        send_telegram: bool = True,
+        save_state: bool = True,
+    ) -> Optional[str]:
+        now = now or datetime.now(timezone.utc)
+        local_now = self._to_local_time(now)
+        digest_date = local_now.strftime("%Y-%m-%d")
+
+        if local_now.hour != self.settings.daily_digest_hour:
+            return None
+
+        state = self.store.load()
+        state.setdefault("alerts_history", [])
+        state.setdefault("daily_digest_sent", {})
+        if state["daily_digest_sent"].get(digest_date):
+            return None
+
+        window_start = now - timedelta(hours=24)
+        alerts = self._alerts_in_window(state["alerts_history"], window_start, now)
+        self._refresh_alert_quote_counts(alerts)
+        text = self._format_daily_digest(alerts, window_start, now)
+        if send_telegram:
+            self._send_report(text)
+        state["daily_digest_sent"][digest_date] = datetime.now(timezone.utc).isoformat()
+        if save_state:
+            self.store.save(state)
+        return text
 
     def _resolve_root(self, quote_tweet: Tweet) -> Optional[Tweet]:
         current = quote_tweet.quoted_tweet
@@ -206,6 +240,21 @@ class CTTrendHunterBot:
             "sent_at": datetime.now(timezone.utc).isoformat(),
             "quote_count": result.root_tweet.quote_count,
         }
+        state.setdefault("alerts_history", []).append(self._alert_history_item(result))
+
+    def _alert_history_item(self, result: EvaluationResult) -> dict:
+        return {
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "root_tweet_id": result.root_tweet.id,
+            "author": result.root_tweet.author_username,
+            "quote_count": result.root_tweet.quote_count,
+            "original_url": result.root_tweet.url,
+            "source_account": result.source_account,
+            "source_mode": result.mode,
+            "source_url": result.tweet.url,
+            "tracked_accounts": result.tracked_accounts_on_trend,
+            "text": result.root_tweet.text[:160],
+        }
 
     def _send_report(self, text: str) -> None:
         for chunk in self._split_message(text):
@@ -241,7 +290,16 @@ class CTTrendHunterBot:
         return "\n".join(lines)
 
     def _format_time(self, dt: datetime) -> str:
-        return dt.astimezone().strftime("%H.%M")
+        return self._to_local_time(dt).strftime("%H.%M")
+
+    def _to_local_time(self, dt: datetime) -> datetime:
+        try:
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo(self.settings.timezone_name)
+        except Exception:
+            tz = timezone.utc
+        return dt.astimezone(tz)
 
     def _format_account_report(self, report: AccountScanReport) -> str:
         if report.error:
@@ -278,6 +336,15 @@ class CTTrendHunterBot:
             return bool(report.results)
         return bool(report.results or report.skipped_non_quote_count or report.notes)
 
+    def _should_send_report(
+        self,
+        reports: List[AccountScanReport],
+        alert_results: List[EvaluationResult],
+    ) -> bool:
+        if alert_results:
+            return True
+        return any(report.new_items_count > 0 for report in reports)
+
     def _format_reasons(self, report: AccountScanReport) -> str:
         reasons = Counter()
         for result in report.results:
@@ -306,6 +373,56 @@ class CTTrendHunterBot:
         if len(urls) > limit:
             lines.append(f"  more tweet links: {len(urls) - limit}")
         return lines
+
+    def _alerts_in_window(self, alerts: List[dict], start: datetime, end: datetime) -> List[dict]:
+        selected = []
+        for alert in alerts:
+            try:
+                sent_at = datetime.fromisoformat(alert["sent_at"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if sent_at.tzinfo is None:
+                sent_at = sent_at.replace(tzinfo=timezone.utc)
+            if start <= sent_at <= end:
+                selected.append(alert)
+        return sorted(selected, key=lambda item: item.get("quote_count", 0), reverse=True)
+
+    def _refresh_alert_quote_counts(self, alerts: List[dict]) -> None:
+        for alert in alerts:
+            tweet_id = alert.get("root_tweet_id")
+            if not tweet_id:
+                continue
+            try:
+                tweet = self.x.get_tweet_by_id(str(tweet_id))
+            except Exception:
+                continue
+            if tweet:
+                alert["quote_count"] = tweet.quote_count
+
+    def _format_daily_digest(self, alerts: List[dict], window_start: datetime, now: datetime) -> str:
+        period = f"{self._format_digest_time(window_start)}-{self._format_digest_time(now)}"
+        lines = [
+            "AI trend bot",
+            f"Daily alert digest: {period}",
+            f"Alerts: {len(alerts)}",
+            "",
+        ]
+
+        if not alerts:
+            lines.append("No alerts in the last 24 hours.")
+            return "\n".join(lines)
+
+        for idx, alert in enumerate(alerts, start=1):
+            lines.extend([
+                f"{idx}. @{alert.get('author', 'unknown')} - {alert.get('quote_count', 0)} quotes",
+                f"   original: {alert.get('original_url', 'n/a')}",
+            ])
+            lines.append("")
+
+        return "\n".join(lines).rstrip()
+
+    def _format_digest_time(self, dt: datetime) -> str:
+        return self._to_local_time(dt).strftime("%m.%d")
 
     def _split_message(self, text: str, limit: int = 3900) -> List[str]:
         chunks: List[str] = []

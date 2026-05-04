@@ -14,6 +14,8 @@ class StateStore:
             "tweets": {},
             "source_tweets": {},
             "alerts_sent": {},
+            "alerts_history": [],
+            "daily_digest_sent": {},
             "trend_accounts": {},
             "last_run_at": None,
         }

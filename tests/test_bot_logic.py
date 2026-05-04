@@ -12,6 +12,14 @@ from models import AccountScanReport, EvaluationResult, Tweet
 from x_client import XClient
 
 
+class FakeXClient:
+    def __init__(self, tweets: dict[str, Tweet]):
+        self.tweets = tweets
+
+    def get_tweet_by_id(self, tweet_id: str) -> Tweet | None:
+        return self.tweets.get(tweet_id)
+
+
 def make_settings(db_path: str) -> Settings:
     return Settings(
         x_api_key="test",
@@ -23,6 +31,8 @@ def make_settings(db_path: str) -> Settings:
         search_window_minutes=120,
         quote_threshold=100,
         original_max_age_hours=12,
+        timezone_name="Europe/Moscow",
+        daily_digest_hour=10,
         db_path=db_path,
         account_config_path="project_accounts.json",
         makers=[],
@@ -131,6 +141,19 @@ class BotLogicTests(unittest.TestCase):
         self.assertIn("tweet: https://x.com/maker/status/1", text)
         self.assertNotIn("@quiet", text)
 
+    def test_report_is_not_sent_without_new_activity(self) -> None:
+        reports = [
+            AccountScanReport(account="maker", mode="maker"),
+            AccountScanReport(account="catcher", mode="catcher"),
+        ]
+
+        self.assertFalse(self.bot._should_send_report(reports, []))
+
+    def test_report_is_sent_with_new_activity(self) -> None:
+        reports = [AccountScanReport(account="maker", mode="maker", new_items_count=1)]
+
+        self.assertTrue(self.bot._should_send_report(reports, []))
+
     def test_catcher_report_uses_quote_tweet_link(self) -> None:
         quote = make_tweet("q1", author="catcher", is_quote=True, quoted_tweet_id="r1")
         root = make_tweet("r1", author="root", quote_count=90)
@@ -171,6 +194,42 @@ class BotLogicTests(unittest.TestCase):
         self.assertTrue(parsed.is_quote)
         self.assertEqual(parsed.quoted_tweet_id, "r1")
         self.assertEqual(self.bot._resolve_root(parsed).id, "r1")
+
+    def test_daily_digest_format(self) -> None:
+        now = datetime(2026, 5, 4, 7, 0, tzinfo=timezone.utc)
+        alerts = [{
+            "sent_at": "2026-05-04T06:00:00+00:00",
+            "author": "root",
+            "quote_count": 150,
+            "original_url": "https://x.com/root/status/r1",
+            "source_account": "catcher",
+            "source_mode": "catcher",
+            "source_url": "https://x.com/catcher/status/q1",
+            "tracked_accounts": ["catcher"],
+            "text": "root tweet",
+        }]
+
+        text = self.bot._format_daily_digest(alerts, now - timedelta(hours=24), now)
+
+        self.assertIn("Daily alert digest: 05.03-05.04", text)
+        self.assertIn("Alerts: 1", text)
+        self.assertIn("@root - 150 quotes", text)
+        self.assertIn("original: https://x.com/root/status/r1", text)
+        self.assertNotIn("source tweet:", text)
+
+    def test_daily_digest_refreshes_quote_counts(self) -> None:
+        alert = {
+            "sent_at": "2026-05-04T06:00:00+00:00",
+            "root_tweet_id": "r1",
+            "author": "root",
+            "quote_count": 101,
+            "original_url": "https://x.com/root/status/r1",
+        }
+        self.bot.x = FakeXClient({"r1": make_tweet("r1", author="root", quote_count=222)})
+
+        self.bot._refresh_alert_quote_counts([alert])
+
+        self.assertEqual(alert["quote_count"], 222)
 
 
 if __name__ == "__main__":
